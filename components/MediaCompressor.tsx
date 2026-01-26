@@ -6,8 +6,9 @@ import JSZip from 'jszip';
 
 const MediaCompressor: React.FC = () => {
   const [items, setItems] = useState<CompressedFile[]>([]);
-  const [quality, setQuality] = useState(0.7);
-  const [scale, setScale] = useState(0.8);
+  // 預設品質 20%, 尺寸縮放 60%
+  const [quality, setQuality] = useState(0.2);
+  const [scale, setScale] = useState(0.6);
   const [isZipping, setIsZipping] = useState(false);
 
   const compressImage = async (file: File, q: number, s: number): Promise<Blob> => {
@@ -59,7 +60,7 @@ const MediaCompressor: React.FC = () => {
         if (item.file.type.startsWith('image/')) {
           compressedBlob = await compressImage(item.file, quality, scale);
         } else {
-          // For videos, basic bypass
+          // 影片採取直通以確保 QuickTime 相容性
           compressedBlob = item.file; 
         }
 
@@ -84,7 +85,7 @@ const MediaCompressor: React.FC = () => {
           startIn: 'desktop',
           types: [
             {
-              description: 'Media Files',
+              description: '媒體檔案',
               accept: {
                 'image/*': ['.jpg', '.jpeg', '.png', '.webp'],
                 'video/*': ['.mp4', '.mov', '.webm']
@@ -106,7 +107,7 @@ const MediaCompressor: React.FC = () => {
 
   const getOutputFilename = (file: File) => {
     const baseName = file.name.replace(/\.[^/.]+$/, "");
-    // If it was an image, it was compressed to jpeg. Otherwise keep original extension.
+    // 圖片轉為 jpg，影片保留原始副檔名以維持相容性
     const extension = file.type.startsWith('image/') ? ".jpg" : file.name.slice(file.name.lastIndexOf('.'));
     return `${baseName}${extension}`;
   };
@@ -171,14 +172,14 @@ const MediaCompressor: React.FC = () => {
         <div className="w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center mb-6 text-emerald-400 group-hover:scale-110 transition-transform duration-500">
           <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
         </div>
-        <h3 className="text-xl font-bold text-slate-100 mb-2">Drop Media Files Here</h3>
-        <p className="text-slate-500 text-sm mb-6">Support JPEG, PNG, WEBP and Videos</p>
+        <h3 className="text-xl font-bold text-slate-100 mb-2">拖拽媒體檔案到此處</h3>
+        <p className="text-slate-500 text-sm mb-6">支援 JPEG, PNG, WEBP 以及影片檔案</p>
         
         <button 
           onClick={handleSelectFiles}
           className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-8 rounded-2xl cursor-pointer transition-all active:scale-95 shadow-xl shadow-emerald-900/20 z-10"
         >
-          Select Files
+          選擇檔案
         </button>
 
         <input 
@@ -196,17 +197,17 @@ const MediaCompressor: React.FC = () => {
           <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl">
             <h4 className="text-sm font-bold text-slate-100 mb-6 flex items-center gap-2">
               <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
-              Settings
+              壓縮參數
             </h4>
             
             <div className="space-y-6">
               <div>
                 <div className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-3">
-                  <span>Quality</span>
+                  <span>輸出品質</span>
                   <span className="text-emerald-400">{Math.round(quality * 100)}%</span>
                 </div>
                 <input 
-                  type="range" min="0.1" max="1" step="0.05" 
+                  type="range" min="0.05" max="1" step="0.05" 
                   value={quality} onChange={e => setQuality(parseFloat(e.target.value))}
                   className="w-full accent-emerald-500" 
                 />
@@ -214,7 +215,7 @@ const MediaCompressor: React.FC = () => {
 
               <div>
                 <div className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-3">
-                  <span>Resolution Scale</span>
+                  <span>尺寸縮放</span>
                   <span className="text-emerald-400">{Math.round(scale * 100)}%</span>
                 </div>
                 <input 
@@ -225,10 +226,9 @@ const MediaCompressor: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="bg-blue-900/10 border border-blue-900/20 p-4 rounded-2xl">
-             <p className="text-[10px] text-blue-400 leading-relaxed">
-               <strong>Tip:</strong> Reducing scale significantly cuts file size while maintaining clarity for web use. 
-               Files will default to your <strong>Desktop</strong> when selecting.
+          <div className="bg-purple-900/10 border border-purple-900/20 p-4 rounded-2xl">
+             <p className="text-[10px] text-purple-400 leading-relaxed">
+               <strong>註記:</strong> 影片將以原始編碼輸出以確保 <strong>QuickTime Player</strong> 的播放相容性。
              </p>
           </div>
         </aside>
@@ -237,7 +237,7 @@ const MediaCompressor: React.FC = () => {
           {items.length > 0 ? (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-4 mb-2 px-2">
-                <h4 className="text-sm font-bold text-slate-400">Processing Queue ({items.length})</h4>
+                <h4 className="text-sm font-bold text-slate-400">處理隊列 ({items.length})</h4>
                 <div className="flex items-center gap-3">
                   {completedCount > 0 && (
                     <button 
@@ -245,10 +245,10 @@ const MediaCompressor: React.FC = () => {
                       disabled={isZipping}
                       className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 px-5 py-2 rounded-xl text-xs font-bold shadow-lg shadow-emerald-900/20 transition-all active:scale-95 disabled:opacity-50"
                     >
-                      {isZipping ? "Packing ZIP..." : `Download All (${completedCount}) as ZIP`}
+                      {isZipping ? "打包中..." : `打包 ZIP 下載 (${completedCount})`}
                     </button>
                   )}
-                  <button onClick={() => setItems([])} className="text-xs text-rose-400 hover:underline">Clear All</button>
+                  <button onClick={() => setItems([])} className="text-xs text-rose-400 hover:underline">清空全部</button>
                 </div>
               </div>
               <div className="space-y-3">
@@ -259,7 +259,7 @@ const MediaCompressor: React.FC = () => {
             </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center py-20 text-slate-600 border-2 border-dashed border-slate-800/50 rounded-[2.5rem]">
-              <p className="text-sm font-medium">No files added yet</p>
+              <p className="text-sm font-medium">暫無檔案</p>
             </div>
           )}
         </div>

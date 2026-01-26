@@ -7,13 +7,17 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 export const analyzeUrls = async (urls: string[]): Promise<AnalysisResult[]> => {
   if (urls.length === 0) return [];
 
-  const prompt = `Analyze the following URLs and determine if they are direct links to images, videos, or documents (PDF/PPTX). 
-  For each URL, suggest a filename and identify its media type.
+  const prompt = `分析以下網址並判斷它們是否為圖片、影片或文件（PDF/PPTX）的直接連結。
   
-  URLs to analyze:
+  特別要求：
+  1. 對於影片檔案（VIDEO），必須確保建議的檔名（suggestedFilename）以 .mov 結尾，這是為了確保 Apple QuickTime Player 的最高相容性。
+  2. 如果原檔名是其他影片格式（如 .mp4, .webm），請將其副檔名改為 .mov。
+  3. 保持原檔名的主體部分，僅更換副檔名。
+  
+  網址列表：
   ${urls.join('\n')}
   
-  Return a structured JSON array.`;
+  請回傳結構化的 JSON 陣列。`;
 
   try {
     const response = await ai.models.generateContent({
@@ -44,18 +48,25 @@ export const analyzeUrls = async (urls: string[]): Promise<AnalysisResult[]> => 
     return results;
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
-    // Fallback if AI fails: basic regex/extension detection
     return urls.map(url => {
       const ext = url.split('.').pop()?.toLowerCase() || '';
       let type = MediaType.OTHER;
-      if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) type = MediaType.IMAGE;
-      else if (['mp4', 'mov', 'webm'].includes(ext)) type = MediaType.VIDEO;
-      else if (['pdf', 'pptx', 'doc', 'docx'].includes(ext)) type = MediaType.DOCUMENT;
+      let suggestedExt = ext;
 
+      if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
+        type = MediaType.IMAGE;
+      } else if (['mp4', 'mov', 'webm', 'm4v', 'avi', 'mkv'].includes(ext)) {
+        type = MediaType.VIDEO;
+        suggestedExt = 'mov'; // 強制 QuickTime 相容
+      } else if (['pdf', 'pptx', 'doc', 'docx'].includes(ext)) {
+        type = MediaType.DOCUMENT;
+      }
+
+      const baseName = url.split('/').pop()?.split('.')[0] || 'file';
       return {
         url,
         type,
-        suggestedFilename: url.split('/').pop() || 'file',
+        suggestedFilename: `${baseName}.${suggestedExt}`,
         isDirectLink: true
       };
     });
